@@ -84,7 +84,7 @@ class TransferManager:
     def _ensure_utc(self, dt: Any) -> Optional[datetime]:
         """Ensures a datetime object is timezone-aware (UTC)."""
         if not dt or not isinstance(dt, datetime): return None
-        return dt.replace(tzinfo=UTC) if dt.tzinfo is None else dt.astimezone(UTC)
+        return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
 
     def get_progress(self) -> Dict[str, Any]:
         """Fetches the current progress state from MongoDB."""
