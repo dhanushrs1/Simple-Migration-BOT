@@ -108,7 +108,7 @@ class TransferManager:
     def save_progress(self, state: Dict[str, Any]):
         """Saves progress with enhanced error handling and speed calculations."""
         try:
-            state['last_update'] = datetime.now(UTC)
+            state['last_update'] = datetime.now(timezone.utc)
             state['status'] = self.status.value
             
             # --- Corrected Speed and ETA Calculation ---
@@ -117,7 +117,7 @@ class TransferManager:
             
             if start_time and transferred > 0:
                 # Calculate runtime, excluding paused time, if available.
-                total_runtime_seconds = (datetime.now(UTC) - start_time).total_seconds()
+                total_runtime_seconds = (datetime.now(timezone.utc) - start_time).total_seconds()
                 if total_runtime_seconds > 10:
                     avg_speed = (transferred / total_runtime_seconds) * 60
                     state['average_speed'] = avg_speed
@@ -127,7 +127,7 @@ class TransferManager:
                     
                     if avg_speed > 0 and remaining_messages > 0:
                         eta_seconds = remaining_messages * (total_runtime_seconds / transferred)
-                        state['estimated_completion'] = datetime.now(UTC) + timedelta(seconds=eta_seconds)
+                        state['estimated_completion'] = datetime.now(timezone.utc) + timedelta(seconds=eta_seconds)
 
             self.progress_collection.replace_one({'_id': 'main_state'}, state, upsert=True)
         except Exception as e:
@@ -138,7 +138,7 @@ class TransferManager:
         try:
             self.error_logs_collection.insert_one({
                 'message_id': message_id, 'error': str(error), 'error_type': error_type,
-                'timestamp': datetime.now(UTC), 'traceback': traceback.format_exc()
+                'timestamp': datetime.now(timezone.utc), 'traceback': traceback.format_exc()
             })
         except Exception as e:
             logger.error(f"FATAL: Could not log error to database: {e}")
@@ -157,7 +157,7 @@ class TransferManager:
     async def _handle_rate_limit_wait(self, bot: Bot, retry_after: int, message_id: int):
         """Manages the waiting period for a RetryAfter exception."""
         self.status = TransferStatus.WAITING
-        self.wait_until = datetime.now(UTC) + timedelta(seconds=retry_after)
+        self.wait_until = datetime.now(timezone.utc) + timedelta(seconds=retry_after)
         try:
             wait_msg = await bot.send_message(
                 ADMIN_USER_ID,
@@ -283,7 +283,7 @@ class TransferManager:
 
         # Set start time only if it's the very first run
         if not self._ensure_utc(state.get('start_time')):
-            state['start_time'] = datetime.now(UTC)
+            state['start_time'] = datetime.now(timezone.utc)
 
         self.status = TransferStatus.RUNNING
         self.task = asyncio.create_task(self._transfer_loop(bot))
@@ -388,8 +388,8 @@ async def send_status_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     eta_str = "N/A"
     if manager.status == TransferStatus.RUNNING:
         eta_time = manager._ensure_utc(state.get('estimated_completion'))
-        if eta_time and eta_time > datetime.now(UTC):
-            eta_str = str(timedelta(seconds=int((eta_time - datetime.now(UTC)).total_seconds())))
+        if eta_time and eta_time > datetime.now(timezone.utc):
+            eta_str = str(timedelta(seconds=int((eta_time - datetime.now(timezone.utc)).total_seconds())))
         elif state.get('average_speed', 0) > 0:
             eta_str = "Calculating..."
 
@@ -404,7 +404,7 @@ async def send_status_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"**Skipped/Empty:** `{state.get('skipped_count', 0):,}` | **Errors:** `{state.get('error_count', 0):,}`\n\n"
         f"--- **Performance** ---\n"
         f"**Average Speed:** `{state.get('average_speed', 0):.2f} msg/min`\n\n"
-        f"🕒 _Last update: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}_"
+        f"🕒 _Last update: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}_"
     )
     
     keyboard = get_status_keyboard(manager)
