@@ -4,7 +4,7 @@ import asyncio
 import traceback
 import sys
 import time
-from datetime import datetime, UTC, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from enum import Enum
